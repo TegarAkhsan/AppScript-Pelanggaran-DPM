@@ -1,0 +1,292 @@
+<script>
+    // FUNGSI TOGGLE PASSWORD
+    function togglePassword() {
+        const passInput = document.getElementById('loginPass');
+        const eyeIcon = document.getElementById('eyeIcon');
+        
+        if (passInput.type === 'password') {
+            passInput.type = 'text';
+            eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />`;
+        } else {
+            passInput.type = 'password';
+            eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />`;
+        }
+    }
+
+    let currentUser = null;
+
+    // FUNGSI LOGIN & AUTENTIKASI
+    function prosesLogin() {
+        const btn = document.getElementById("btnLogin");
+        const user = document.getElementById("loginUser").value;
+        const pass = document.getElementById("loginPass").value;
+        const alertBox = document.getElementById("loginAlert");
+
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memverifikasi...`;
+        alertBox.classList.add("hidden");
+
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run
+                .withSuccessHandler(function(response) {
+                    handleLoginResponse(response);
+                })
+                .verifikasiLogin(user, pass);
+        } else {
+            // Preview mode
+            setTimeout(() => {
+                handleLoginResponse({role: 'admin', username: 'MKEDPM'});
+            }, 1000);
+        }
+    }
+
+    function handleLoginResponse(response) {
+        const btn = document.getElementById("btnLogin");
+        const alertBox = document.getElementById("loginAlert");
+
+        btn.disabled = false;
+        btn.innerHTML = `<span>Masuk</span>`;
+
+        if (!response) {
+            alertBox.innerText = "Username atau Password salah!";
+            alertBox.classList.remove("hidden");
+            return;
+        }
+
+        currentUser = response;
+        document.getElementById("loginPage").classList.add("hidden");
+        document.getElementById("mainPage").classList.remove("hidden");
+
+        const inputSection = document.getElementById("inputSection");
+        const tableSection = document.getElementById("tableSection");
+        const userSummarySection = document.getElementById("userSummarySection");
+        const roleBadge = document.getElementById("roleBadge");
+        const userNameDisplay = document.getElementById("userNameDisplay");
+
+        userNameDisplay.innerText = currentUser.username;
+
+        if (currentUser.role === 'admin') {
+            roleBadge.innerText = "MKE DPM (Admin)";
+            roleBadge.classList.replace("text-blue-600", "text-yellow-600");
+            inputSection.classList.remove("hidden");
+            userSummarySection.classList.add("hidden");
+            tableSection.className = "bg-white p-6 rounded-xl shadow-sm border border-slate-200 lg:col-span-2";
+        } else {
+            roleBadge.innerText = "Fungsionaris";
+            roleBadge.classList.replace("text-yellow-600", "text-blue-600");
+            inputSection.classList.add("hidden");
+            userSummarySection.classList.remove("hidden");
+            tableSection.className = "bg-white p-6 rounded-xl shadow-sm border border-slate-200 lg:col-span-3";
+        }
+
+        loadData();
+        loadFungsionaris();
+        loadJenisPelanggaran();
+        loadSanksi();
+    }
+
+    let listSanksi = [];
+    function loadSanksi() {
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run.withSuccessHandler(function(data) {
+                listSanksi = data;
+                updateMyStatus();
+            }).getSanksiList();
+        }
+    }
+
+    function updateMyStatus(allData) {
+        if (!currentUser || currentUser.role === 'admin' || !allData) return;
+
+        let total = 0;
+        allData.forEach((row, index) => {
+            if (index > 0 && row[1] === currentUser.username) {
+                total += parseInt(row[4] || 0);
+            }
+        });
+
+        document.getElementById("myTotalPoints").innerText = total;
+
+        // Tentukan Sanksi
+        let currentSanksi = { jenis: "Tidak Ada Sanksi", deskripsi: "Pertahankan kedisiplinan Anda." };
+        
+        listSanksi.forEach(s => {
+            const p = s.poin;
+            if (p.includes("-")) {
+                const range = p.split("-").map(Number);
+                if (total >= range[0] && total <= range[1]) currentSanksi = s;
+            } else if (p.startsWith(">=")) {
+                const min = parseInt(p.replace(">=", ""));
+                if (total >= min) currentSanksi = s;
+            } else if (!isNaN(p) && parseInt(p) === total) {
+                currentSanksi = s;
+            }
+        });
+
+        document.getElementById("mySanksiStatus").innerText = currentSanksi.jenis || currentSanksi.jenis_sanksi;
+        document.getElementById("mySanksiDesc").innerText = currentSanksi.deskripsi;
+        
+        const sanksiIcon = document.getElementById("sanksiIcon");
+        if (total > 0) {
+            sanksiIcon.className = "bg-red-100 text-red-600 p-3 rounded-xl";
+            sanksiIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+        } else {
+            sanksiIcon.className = "bg-green-100 text-green-600 p-3 rounded-xl";
+            sanksiIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById("tabelBody");
+        let html = "";
+        
+        if(!data || data.length <= 1){
+            html = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500 italic">Belum ada data pelanggaran.</td></tr>`;
+            tbody.innerHTML = html;
+            return;
+        }
+
+        // Simpan data untuk update status
+        if (currentUser && currentUser.role !== 'admin') {
+            updateMyStatus(data);
+        }
+
+        for(let i = data.length - 1; i >= 1; i--){
+            let row = data[i];
+            
+            // Filter jika role adalah user
+            if (currentUser && currentUser.role !== 'admin' && row[1] !== currentUser.username) continue;
+
+            let tglRaw = new Date(row[6]);
+            let tglFormat = tglRaw.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'});
+            if(tglFormat === "Invalid Date") tglFormat = row[6] || "-";
+
+            let poin = parseInt(row[4]);
+            let poinColor = "bg-yellow-100 text-yellow-800";
+            if(poin >= 8) poinColor = "bg-red-100 text-red-800 font-bold";
+            else if(poin >= 4) poinColor = "bg-orange-100 text-orange-800";
+
+            html += `<tr class="hover:bg-slate-50 transition border-b border-slate-50">
+                        <td class="px-4 py-3 whitespace-nowrap text-slate-500">${tglFormat}</td>
+                        <td class="px-4 py-3 font-medium text-slate-800">${row[1]}</td>
+                        <td class="px-4 py-3 text-slate-600">${row[2]}</td>
+                        <td class="px-4 py-3 text-slate-600 max-w-xs truncate" title="${row[3]}">${row[3]}</td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-xs ${poinColor}">${row[4]}</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 text-sm max-w-xs truncate" title="${row[5]}">${row[5] || "-"}</td>
+                     </tr>`;
+        }
+        tbody.innerHTML = html || `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500 italic">Anda belum memiliki riwayat pelanggaran.</td></tr>`;
+    }
+
+    // ... sisa fungsi lainnya (loadFungsionaris, loadJenisPelanggaran, updateJabatan, logout, showStatus, simpan, loadData)
+    // Saya akan menuliskan ulang bagian bawah agar tidak terpotong
+    
+    let listFungsionaris = [];
+    function loadFungsionaris() {
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    listFungsionaris = data;
+                    const select = document.getElementById("nama");
+                    if (!select) return;
+                    select.innerHTML = '<option value="" disabled selected>-- Pilih Nama --</option>';
+                    data.forEach(item => {
+                        let option = document.createElement("option");
+                        option.value = item.nama;
+                        option.text = item.nama;
+                        select.appendChild(option);
+                    });
+                })
+                .getFungsionarisList();
+        }
+    }
+
+    function loadJenisPelanggaran() {
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    const select = document.getElementById("jenis");
+                    if (!select) return;
+                    select.innerHTML = '<option value="" disabled selected>-- Pilih Jenis Pelanggaran --</option>';
+                    const groups = {};
+                    data.forEach(item => {
+                        if (!groups[item.kategori]) groups[item.kategori] = [];
+                        groups[item.kategori].push(item);
+                    });
+                    for (const kategori in groups) {
+                        const optgroup = document.createElement("optgroup");
+                        optgroup.label = kategori;
+                        groups[kategori].forEach(item => {
+                            const option = document.createElement("option");
+                            option.value = `${item.poin}|${item.jenis}`;
+                            option.text = `${item.jenis} (${item.poin} Poin)`;
+                            optgroup.appendChild(option);
+                        });
+                        select.appendChild(optgroup);
+                    }
+                })
+                .getJenisPelanggaranList();
+        }
+    }
+
+    function updateJabatan() {
+        const nama = document.getElementById("nama").value;
+        const jabatanInput = document.getElementById("jabatan");
+        const find = listFungsionaris.find(f => f.nama === nama);
+        if (find) jabatanInput.value = find.jabatan;
+        else jabatanInput.value = "";
+    }
+
+    function logout() {
+        currentUser = null;
+        document.getElementById("loginUser").value = "";
+        document.getElementById("loginPass").value = "";
+        document.getElementById("mainPage").classList.add("hidden");
+        document.getElementById("loginPage").classList.remove("hidden");
+    }
+
+    function showStatus(message, isError = false) {
+        const alertBox = document.getElementById("statusAlert");
+        alertBox.classList.remove("hidden", "bg-green-100", "text-green-700", "bg-red-100", "text-red-700");
+        if(isError) alertBox.classList.add("bg-red-100", "text-red-700");
+        else alertBox.classList.add("bg-green-100", "text-green-700");
+        alertBox.innerText = message;
+        alertBox.classList.remove("hidden");
+        setTimeout(() => alertBox.classList.add("hidden"), 4000);
+    }
+
+    function simpan() {
+        const btn = document.getElementById("btnSimpan");
+        const nama = document.getElementById("nama").value;
+        const jabatan = document.getElementById("jabatan").value;
+        const jenisRaw = document.getElementById("jenis").value; 
+        const ket = document.getElementById("keterangan").value;
+        if(!nama || !jabatan || !jenisRaw) return showStatus("Mohon lengkapi form wajib!", true);
+        const dataSplit = jenisRaw.split("|");
+        const poin = dataSplit[0];
+        const jenis = dataSplit[1];
+        btn.disabled = true;
+        btn.innerHTML = `Menyimpan...`;
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run
+                .withSuccessHandler(function() {
+                    showStatus("Data berhasil disimpan!");
+                    document.getElementById("formPelanggaran").reset();
+                    btn.disabled = false;
+                    btn.innerHTML = `<span>Simpan Data</span>`;
+                    loadData();
+                })
+                .simpanPelanggaran(nama, jabatan, jenis, poin, ket);
+        }
+    }
+
+    function loadData() {
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run.withSuccessHandler(function(data){
+                renderTable(data);
+            }).getData();
+        }
+    }
+</script>

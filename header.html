@@ -1,0 +1,24 @@
+<!-- Header -->
+<header class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+        <div class="bg-yellow-500 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+            DPM
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Sistem Pencatatan Pelanggaran Fungsionaris</h1>
+            <p class="text-slate-500 text-sm">DPM Fakultas Vokasi UNESA - Sesuai Peraturan Disiplin Internal 2026</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-4">
+        <div class="text-right hidden md:block">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Akses Masuk</p>
+            <div class="flex flex-col">
+                <p id="userNameDisplay" class="text-sm font-bold text-slate-800">-</p>
+                <p id="roleBadge" class="text-xs font-semibold text-blue-600">Admin</p>
+            </div>
+        </div>
+        <button onclick="logout()" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg font-medium transition text-sm flex items-center gap-2">
+            Keluar
+        </button>
+    </div>
+</header>
