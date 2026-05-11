@@ -3,7 +3,6 @@
     function togglePassword() {
         const passInput = document.getElementById('loginPass');
         const eyeIcon = document.getElementById('eyeIcon');
-        
         if (passInput.type === 'password') {
             passInput.type = 'text';
             eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />`;
@@ -33,10 +32,7 @@
                 })
                 .verifikasiLogin(user, pass);
         } else {
-            // Preview mode
-            setTimeout(() => {
-                handleLoginResponse({role: 'admin', username: 'MKEDPM'});
-            }, 1000);
+            handleLoginResponse({role: 'admin', username: 'MKEDPM'});
         }
     }
 
@@ -90,26 +86,14 @@
         if (typeof google !== 'undefined' && google.script) {
             google.script.run.withSuccessHandler(function(data) {
                 listSanksi = data;
-                updateMyStatus();
+                // Re-render if data already exists
+                loadData();
             }).getSanksiList();
         }
     }
 
-    function updateMyStatus(allData) {
-        if (!currentUser || currentUser.role === 'admin' || !allData) return;
-
-        let total = 0;
-        allData.forEach((row, index) => {
-            if (index > 0 && row[1] === currentUser.username) {
-                total += parseInt(row[4] || 0);
-            }
-        });
-
-        document.getElementById("myTotalPoints").innerText = total;
-
-        // Tentukan Sanksi
-        let currentSanksi = { jenis: "Tidak Ada Sanksi", deskripsi: "Pertahankan kedisiplinan Anda." };
-        
+    function getSanksiByPoin(total) {
+        let currentSanksi = { jenis: "Aman", deskripsi: "Tidak ada sanksi" };
         listSanksi.forEach(s => {
             const p = s.poin;
             if (p.includes("-")) {
@@ -122,10 +106,19 @@
                 currentSanksi = s;
             }
         });
+        return currentSanksi;
+    }
 
+    function updateMyStatus(allData) {
+        if (!currentUser || currentUser.role === 'admin' || !allData) return;
+        let total = 0;
+        allData.forEach((row, index) => {
+            if (index > 0 && row[1] === currentUser.username) total += parseInt(row[4] || 0);
+        });
+        document.getElementById("myTotalPoints").innerText = total;
+        const currentSanksi = getSanksiByPoin(total);
         document.getElementById("mySanksiStatus").innerText = currentSanksi.jenis || currentSanksi.jenis_sanksi;
         document.getElementById("mySanksiDesc").innerText = currentSanksi.deskripsi;
-        
         const sanksiIcon = document.getElementById("sanksiIcon");
         if (total > 0) {
             sanksiIcon.className = "bg-red-100 text-red-600 p-3 rounded-xl";
@@ -136,36 +129,73 @@
         }
     }
 
-    function renderTable(data) {
-        const tbody = document.getElementById("tabelBody");
-        let html = "";
-        
-        if(!data || data.length <= 1){
-            html = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500 italic">Belum ada data pelanggaran.</td></tr>`;
-            tbody.innerHTML = html;
+    function renderLeaderboard(data) {
+        const container = document.getElementById("leaderboardContainer");
+        if (!data || data.length <= 1) {
+            container.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400 italic">Belum ada data untuk leaderboard.</div>`;
             return;
         }
 
-        // Simpan data untuk update status
-        if (currentUser && currentUser.role !== 'admin') {
-            updateMyStatus(data);
+        const totals = {};
+        data.forEach((row, index) => {
+            if (index > 0) {
+                const nama = row[1];
+                const poin = parseInt(row[4] || 0);
+                if (!totals[nama]) totals[nama] = { nama: nama, poin: 0, jabatan: row[2] };
+                totals[nama].poin += poin;
+            }
+        });
+
+        const sorted = Object.values(totals).sort((a, b) => b.poin - a.poin).slice(0, 6);
+        let html = "";
+        
+        sorted.forEach((user, i) => {
+            const sanksi = getSanksiByPoin(user.poin);
+            let badgeColor = "bg-slate-100 text-slate-600";
+            if (i === 0) badgeColor = "bg-red-500 text-white shadow-sm ring-4 ring-red-100";
+            else if (i === 1) badgeColor = "bg-orange-500 text-white shadow-sm ring-4 ring-orange-100";
+            else if (i === 2) badgeColor = "bg-yellow-500 text-white shadow-sm ring-4 yellow-orange-100";
+
+            html += `
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center gap-4 transition hover:shadow-md hover:bg-white">
+                    <div class="w-10 h-10 rounded-full ${badgeColor} flex items-center justify-center font-black text-lg">
+                        ${i + 1}
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <h4 class="font-bold text-slate-800 truncate">${user.nama}</h4>
+                        <p class="text-xs text-slate-500 truncate">${user.jabatan}</p>
+                        <div class="mt-2 flex items-center gap-2">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">${user.poin} POIN</span>
+                            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 truncate">${sanksi.jenis || "Aman"}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html || `<div class="col-span-full py-8 text-center text-slate-400 italic">Data leaderboard masih kosong.</div>`;
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById("tabelBody");
+        let html = "";
+        if(!data || data.length <= 1){
+            tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500 italic">Belum ada data pelanggaran.</td></tr>`;
+            return;
         }
+
+        if (currentUser && currentUser.role !== 'admin') updateMyStatus(data);
+        renderLeaderboard(data);
 
         for(let i = data.length - 1; i >= 1; i--){
             let row = data[i];
-            
-            // Filter jika role adalah user
             if (currentUser && currentUser.role !== 'admin' && row[1] !== currentUser.username) continue;
-
             let tglRaw = new Date(row[6]);
             let tglFormat = tglRaw.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'});
             if(tglFormat === "Invalid Date") tglFormat = row[6] || "-";
-
             let poin = parseInt(row[4]);
             let poinColor = "bg-yellow-100 text-yellow-800";
             if(poin >= 8) poinColor = "bg-red-100 text-red-800 font-bold";
             else if(poin >= 4) poinColor = "bg-orange-100 text-orange-800";
-
             html += `<tr class="hover:bg-slate-50 transition border-b border-slate-50">
                         <td class="px-4 py-3 whitespace-nowrap text-slate-500">${tglFormat}</td>
                         <td class="px-4 py-3 font-medium text-slate-800">${row[1]}</td>
@@ -180,54 +210,46 @@
         tbody.innerHTML = html || `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500 italic">Anda belum memiliki riwayat pelanggaran.</td></tr>`;
     }
 
-    // ... sisa fungsi lainnya (loadFungsionaris, loadJenisPelanggaran, updateJabatan, logout, showStatus, simpan, loadData)
-    // Saya akan menuliskan ulang bagian bawah agar tidak terpotong
-    
     let listFungsionaris = [];
     function loadFungsionaris() {
         if (typeof google !== 'undefined' && google.script) {
-            google.script.run
-                .withSuccessHandler(function(data) {
-                    listFungsionaris = data;
-                    const select = document.getElementById("nama");
-                    if (!select) return;
-                    select.innerHTML = '<option value="" disabled selected>-- Pilih Nama --</option>';
-                    data.forEach(item => {
-                        let option = document.createElement("option");
-                        option.value = item.nama;
-                        option.text = item.nama;
-                        select.appendChild(option);
-                    });
-                })
-                .getFungsionarisList();
+            google.script.run.withSuccessHandler(function(data) {
+                listFungsionaris = data;
+                const select = document.getElementById("nama");
+                if (!select) return;
+                select.innerHTML = '<option value="" disabled selected>-- Pilih Nama --</option>';
+                data.forEach(item => {
+                    let option = document.createElement("option");
+                    option.value = item.nama; option.text = item.nama;
+                    select.appendChild(option);
+                });
+            }).getFungsionarisList();
         }
     }
 
     function loadJenisPelanggaran() {
         if (typeof google !== 'undefined' && google.script) {
-            google.script.run
-                .withSuccessHandler(function(data) {
-                    const select = document.getElementById("jenis");
-                    if (!select) return;
-                    select.innerHTML = '<option value="" disabled selected>-- Pilih Jenis Pelanggaran --</option>';
-                    const groups = {};
-                    data.forEach(item => {
-                        if (!groups[item.kategori]) groups[item.kategori] = [];
-                        groups[item.kategori].push(item);
+            google.script.run.withSuccessHandler(function(data) {
+                const select = document.getElementById("jenis");
+                if (!select) return;
+                select.innerHTML = '<option value="" disabled selected>-- Pilih Jenis Pelanggaran --</option>';
+                const groups = {};
+                data.forEach(item => {
+                    if (!groups[item.kategori]) groups[item.kategori] = [];
+                    groups[item.kategori].push(item);
+                });
+                for (const kategori in groups) {
+                    const optgroup = document.createElement("optgroup");
+                    optgroup.label = kategori;
+                    groups[kategori].forEach(item => {
+                        const option = document.createElement("option");
+                        option.value = `${item.poin}|${item.jenis}`;
+                        option.text = `${item.jenis} (${item.poin} Poin)`;
+                        optgroup.appendChild(option);
                     });
-                    for (const kategori in groups) {
-                        const optgroup = document.createElement("optgroup");
-                        optgroup.label = kategori;
-                        groups[kategori].forEach(item => {
-                            const option = document.createElement("option");
-                            option.value = `${item.poin}|${item.jenis}`;
-                            option.text = `${item.jenis} (${item.poin} Poin)`;
-                            optgroup.appendChild(option);
-                        });
-                        select.appendChild(optgroup);
-                    }
-                })
-                .getJenisPelanggaranList();
+                    select.appendChild(optgroup);
+                }
+            }).getJenisPelanggaranList();
         }
     }
 
@@ -270,15 +292,12 @@
         btn.disabled = true;
         btn.innerHTML = `Menyimpan...`;
         if (typeof google !== 'undefined' && google.script) {
-            google.script.run
-                .withSuccessHandler(function() {
-                    showStatus("Data berhasil disimpan!");
-                    document.getElementById("formPelanggaran").reset();
-                    btn.disabled = false;
-                    btn.innerHTML = `<span>Simpan Data</span>`;
-                    loadData();
-                })
-                .simpanPelanggaran(nama, jabatan, jenis, poin, ket);
+            google.script.run.withSuccessHandler(function() {
+                showStatus("Data berhasil disimpan!");
+                document.getElementById("formPelanggaran").reset();
+                btn.disabled = false; btn.innerHTML = `<span>Simpan Data</span>`;
+                loadData();
+            }).simpanPelanggaran(nama, jabatan, jenis, poin, ket);
         }
     }
 

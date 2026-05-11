@@ -1,0 +1,28 @@
+<!-- Leaderboard Pelanggaran -->
+<div id="leaderboardSection" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+    <div class="flex justify-between items-center mb-6 pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+            <div class="bg-red-100 text-red-600 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">Leaderboard Akumulasi Poin</h3>
+        </div>
+        <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded-full uppercase tracking-tighter">Ranking Kedisiplinan</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="leaderboardContainer">
+        <!-- Item Leaderboard akan dimuat di sini -->
+        <div class="animate-pulse flex space-x-4">
+            <div class="rounded-full bg-slate-200 h-10 w-10"></div>
+            <div class="flex-1 space-y-6 py-1">
+                <div class="h-2 bg-slate-200 rounded"></div>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="h-2 bg-slate-200 rounded col-span-2"></div>
+                        <div class="h-2 bg-slate-200 rounded col-span-1"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
