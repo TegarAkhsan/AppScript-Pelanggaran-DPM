@@ -1,4 +1,4 @@
-const SS_ID = '1Jw3-ZarGVaTuxDyNwzfKulc1p8nvXM9UpF5j1YMIZU4';
+const SS_ID = '1EG3aVWpYGoGLn9fTnNAMsTWMHu4OahtR3lyx_7eqK8Q';
 
 function doGet() {
   return HtmlService.createTemplateFromFile('index')
