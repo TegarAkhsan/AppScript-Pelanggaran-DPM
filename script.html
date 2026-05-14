@@ -13,6 +13,32 @@
     }
 
     let currentUser = null;
+    const INACTIVITY_TIMEOUT = 20 * 60 * 1000; // 20 Menit dalam milidetik
+
+    // FUNGSI UPDATE AKTIVITAS TERAKHIR
+    function updateLastActivity() {
+        if (!currentUser) return;
+        localStorage.setItem('lastActivity', Date.now());
+    }
+
+    // FUNGSI CEK SESI
+    function checkSession() {
+        if (!currentUser) return;
+        const lastActivity = localStorage.getItem('lastActivity');
+        if (lastActivity && (Date.now() - lastActivity > INACTIVITY_TIMEOUT)) {
+            console.log("Sesi berakhir karena tidak ada aktivitas.");
+            logout();
+            alert("Sesi Anda telah berakhir. Silakan login kembali.");
+        }
+    }
+
+    // EVENT LISTENERS UNTUK TRACK AKTIVITAS
+    ['mousemove', 'keydown', 'click', 'scroll'].forEach(event => {
+        window.addEventListener(event, updateLastActivity);
+    });
+
+    // Cek sesi setiap 30 detik
+    setInterval(checkSession, 30000);
 
     // FUNGSI LOGIN & AUTENTIKASI
     function prosesLogin() {
@@ -53,9 +79,7 @@
         document.getElementById("loginPage").classList.add("hidden");
         document.getElementById("mainPage").classList.remove("hidden");
 
-        const inputSection = document.getElementById("inputSection");
-        const tableSection = document.getElementById("tableSection");
-        const userSummarySection = document.getElementById("userSummarySection");
+        const adminControls = document.getElementById("adminControls");
         const roleBadge = document.getElementById("roleBadge");
         const userNameDisplay = document.getElementById("userNameDisplay");
 
@@ -64,21 +88,20 @@
         if (currentUser.role === 'admin') {
             roleBadge.innerText = "MKE DPM (Admin)";
             roleBadge.classList.replace("text-blue-600", "text-yellow-600");
-            inputSection.classList.remove("hidden");
-            userSummarySection.classList.add("hidden");
-            tableSection.className = "bg-white p-6 rounded-xl shadow-sm border border-slate-200 lg:col-span-2";
+            adminControls.classList.remove("hidden");
+            document.getElementById("tableWrapper").classList.replace("lg:col-span-3", "lg:col-span-2");
         } else {
             roleBadge.innerText = "Fungsionaris";
             roleBadge.classList.replace("text-yellow-600", "text-blue-600");
-            inputSection.classList.add("hidden");
-            userSummarySection.classList.remove("hidden");
-            tableSection.className = "bg-white p-6 rounded-xl shadow-sm border border-slate-200 lg:col-span-3";
+            adminControls.classList.add("hidden");
+            document.getElementById("tableWrapper").classList.replace("lg:col-span-2", "lg:col-span-3");
         }
 
         loadData();
         loadFungsionaris();
         loadJenisPelanggaran();
         loadSanksi();
+        updateLastActivity(); // Set aktivitas awal saat login
     }
 
     let listSanksi = [];
@@ -109,24 +132,9 @@
         return currentSanksi;
     }
 
+    // UPDATE MY STATUS (Removed as per user request)
     function updateMyStatus(allData) {
-        if (!currentUser || currentUser.role === 'admin' || !allData) return;
-        let total = 0;
-        allData.forEach((row, index) => {
-            if (index > 0 && row[1] === currentUser.username) total += parseInt(row[4] || 0);
-        });
-        document.getElementById("myTotalPoints").innerText = total;
-        const currentSanksi = getSanksiByPoin(total);
-        document.getElementById("mySanksiStatus").innerText = currentSanksi.jenis || currentSanksi.jenis_sanksi;
-        document.getElementById("mySanksiDesc").innerText = currentSanksi.deskripsi;
-        const sanksiIcon = document.getElementById("sanksiIcon");
-        if (total > 0) {
-            sanksiIcon.className = "bg-red-100 text-red-600 p-3 rounded-xl";
-            sanksiIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-        } else {
-            sanksiIcon.className = "bg-green-100 text-green-600 p-3 rounded-xl";
-            sanksiIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
-        }
+        // This section is no longer used
     }
 
     function renderLeaderboard(data) {
@@ -183,12 +191,11 @@
             return;
         }
 
-        if (currentUser && currentUser.role !== 'admin') updateMyStatus(data);
+        // updateMyStatus(data); // Removed summary section update
         renderLeaderboard(data);
 
         for(let i = data.length - 1; i >= 1; i--){
             let row = data[i];
-            if (currentUser && currentUser.role !== 'admin' && row[1] !== currentUser.username) continue;
             let tglRaw = new Date(row[6]);
             let tglFormat = tglRaw.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'});
             if(tglFormat === "Invalid Date") tglFormat = row[6] || "-";
@@ -207,7 +214,7 @@
                         <td class="px-4 py-3 text-slate-500 text-sm max-w-xs truncate" title="${row[5]}">${row[5] || "-"}</td>
                      </tr>`;
         }
-        tbody.innerHTML = html || `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500 italic">Anda belum memiliki riwayat pelanggaran.</td></tr>`;
+        tbody.innerHTML = html || `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500 italic">Belum ada riwayat pelanggaran.</td></tr>`;
     }
 
     let listFungsionaris = [];
@@ -263,6 +270,7 @@
 
     function logout() {
         currentUser = null;
+        localStorage.removeItem('lastActivity');
         document.getElementById("loginUser").value = "";
         document.getElementById("loginPass").value = "";
         document.getElementById("mainPage").classList.add("hidden");
@@ -307,5 +315,12 @@
                 renderTable(data);
             }).getData();
         }
+    }
+
+    // FUNGSI AKSES CEPAT FUNGSIONARIS
+    function loginCepatFungsionaris() {
+        document.getElementById("loginUser").value = "FungsionarisDPM";
+        document.getElementById("loginPass").value = "DPMVOKASI";
+        prosesLogin();
     }
 </script>

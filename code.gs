@@ -1,3 +1,5 @@
+const SS_ID = '1Jw3-ZarGVaTuxDyNwzfKulc1p8nvXM9UpF5j1YMIZU4';
+
 function doGet() {
   return HtmlService.createTemplateFromFile('index')
       .evaluate()
@@ -10,9 +12,13 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
+function getSS() {
+  return SpreadsheetApp.openById(SS_ID);
+}
+
 // Fungsi verifikasi Login dari sheet "pengguna"
 function verifikasiLogin(username, password) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSS();
   var sheet = ss.getSheetByName("pengguna");
   
   if (!sheet) {
@@ -38,7 +44,7 @@ function verifikasiLogin(username, password) {
 
 // Fungsi mengambil daftar fungsionaris untuk dropdown
 function getFungsionarisList() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSS();
   var sheet = ss.getSheetByName("data_fungsionaris");
   
   if (!sheet) {
@@ -66,11 +72,12 @@ function getFungsionarisList() {
 function simpanPelanggaran(nama, jabatan, jenis, poin, keterangan){
   
   // Pastikan nama sheet di Spreadsheet Anda sudah benar "pelanggaran"
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("pelanggaran");
+  var ss = getSS();
+  var sheet = ss.getSheetByName("pelanggaran");
   
   // Jika sheet belum ada buat otomatis (opsional pencegahan error)
   if(!sheet) {
-    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("pelanggaran");
+    sheet = ss.insertSheet("pelanggaran");
     // Buat header
     sheet.appendRow(["ID", "Nama", "Jabatan", "Pelanggaran", "Poin", "Keterangan", "Tanggal"]);
     sheet.getRange("A1:G1").setFontWeight("bold").setBackground("#f3f4f6");
@@ -92,7 +99,7 @@ function simpanPelanggaran(nama, jabatan, jenis, poin, keterangan){
 
 // Fungsi mengambil daftar jenis pelanggaran dari sheet "data_pelanggaran"
 function getJenisPelanggaranList() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSS();
   var sheet = ss.getSheetByName("data_pelanggaran");
   
   if (!sheet) return [];
@@ -116,7 +123,7 @@ function getJenisPelanggaranList() {
 
 // Fungsi mengambil daftar sanksi dari sheet "data_sanksi"
 function getSanksiList() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSS();
   var sheet = ss.getSheetByName("data_sanksi");
   
   if (!sheet) return [];
@@ -140,7 +147,8 @@ function getSanksiList() {
 
 function getData(){
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("pelanggaran");
+    var ss = getSS();
+    var sheet = ss.getSheetByName("pelanggaran");
     
     if(!sheet) return []; // Hindari error jika sheet kosong/belum ada
     

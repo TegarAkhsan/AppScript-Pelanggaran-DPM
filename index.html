@@ -16,34 +16,15 @@
             
             <?!= include('header'); ?>
 
-            <!-- Ringkasan Untuk Fungsionaris (Awalnya Sembunyi) -->
-            <div id="userSummarySection" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg text-white">
-                    <p class="text-blue-100 text-sm font-medium uppercase tracking-wider mb-1">Total Poin Pelanggaran</p>
-                    <h2 id="myTotalPoints" class="text-5xl font-black mb-2">0</h2>
-                    <p class="text-blue-100 text-xs opacity-80">Akumulasi poin dari seluruh riwayat</p>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 md:col-span-2">
-                    <p class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Status Sanksi Saat Ini</p>
-                    <div class="flex items-start gap-4">
-                        <div id="sanksiIcon" class="bg-green-100 text-green-600 p-3 rounded-xl">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        </div>
-                        <div>
-                            <h3 id="mySanksiStatus" class="text-xl font-bold text-slate-800">Tidak Ada Sanksi</h3>
-                            <p id="mySanksiDesc" class="text-slate-500 text-sm mt-1 italic">Pertahankan kedisiplinan Anda dalam menjalankan tugas organisasi.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <?!= include('leaderboard'); ?>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <?!= include('form'); ?>
-                <?!= include('table'); ?>
-
+                <div id="adminControls" class="hidden lg:col-span-1">
+                    <?!= include('form'); ?>
+                </div>
+                <div id="tableWrapper" class="lg:col-span-3">
+                    <?!= include('table'); ?>
+                </div>
             </div>
         </div>
     </div>
